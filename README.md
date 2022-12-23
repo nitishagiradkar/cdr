@@ -11,40 +11,35 @@ Below are list of technologies used.
 - [Sqlite] - Used to save uploaded csv file to sqlite db
 
 
-## Package installation steps
+## Package depencies
 
-User should ensure below packages are locally installed on your server in case you are facing any issue to install this. 
+User should ensure below packages are locally installed on your server 
 ```bash
 Mojolicious::Lite
 DBI::SQLite
 Text::CSV_XS
 ```
-
-User should copy below files on server:
+## Package installation steps
+User should follow below steps to start CDR Application:
 ```bash
-cdr.pl
-DB.pm
-CDR.pm
+git clone https://github.com/nitishagiradkar/cdr.git
+cd cdr
+morbo cdr.pl &
 ```
-Before using API run below command:
-```bash
-morbo cdr.pl
-```
-### Assumptions
+## Usage
+User can use below endpoints though postman to use the application:
 
+POST http://URL:3000/cdr
+select "form-data" ratio button and content type as text/csv from Body tab in postman to upload file.
 
-### Testing
-Manual unit testing done for upload and GET APIS in postman
 GET http://URL:3000/call?opr=long-call
-GET http://URL/call?opr=call-cost
-
-POST http://URL:3000/upload
-select "form-data" ratio button from Body tab in postman to upload file.
-
+GET http://URL:3000/call?opr=call-cost
 
 ### Limitations
-average number of calls API is not delevoped due to time contraints.
-testing for uploding very big files not done due to development environment contraints.
+- In current version "average number of calls" API is not supported.
+- Currently this application is tested for file size of 500MB
+- application is currently working with morbo in background, in future version it can be extended to start/stop in command line prompt.
+- Authentication is not supported in current  version.
 
 
 ### GIT Details
