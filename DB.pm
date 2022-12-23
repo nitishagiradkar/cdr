@@ -1,11 +1,5 @@
-#!/usr/bin/env perl
-
 use Mojolicious::Lite;
-# connect to database
 use DBI;
-# require Exporter;
-# our @ISA = qw(Exporter);
-# our @EXPORT = qw(get_dbh create_table);
 
 sub create_table {
 	my $dbh = get_dbh();
