@@ -23,7 +23,7 @@ unless (-d $CSV_DIR) {
     mkpath $CSV_DIR or die "Cannot create dirctory: $CSV_DIR";
 }
 
-get '/one' => sub {
+get '/hello' => sub {
     my $self = shift;
 	return $self->render(text => "Hello ");
 };
@@ -53,7 +53,7 @@ get '/call' => sub($c) {
 
 
 # Upload csv file
-post '/upload' => sub {
+post '/cdr' => sub {
     my $self = shift;
 
     # Uploaded csv(Mojo::Upload object)
