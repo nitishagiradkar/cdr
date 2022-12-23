@@ -35,10 +35,10 @@ morbo cdr.pl
 
 ### Testing
 Manual unit testing done for upload and GET APIS in postman
-GET http://<URL>:3000/call?opr=long-call
-GET http://<URL>/call?opr=call-cost
+GET http://URL:3000/call?opr=long-call
+GET http://URL/call?opr=call-cost
 
-POST http://<URL>:3000/upload
+POST http://URL:3000/upload
 select "form-data" ratio button from Body tab in postman to upload file.
 
 
