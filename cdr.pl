@@ -1,12 +1,35 @@
-use Mojolicious::Lite -signatures;
+use strict;
+use warnings;
+
+use Mojolicious::Lite -signatures; # app, get, post is exported. 
+
+use File::Basename 'basename';
+use File::Path 'mkpath';
 use lib "/home/niti/src/cdr";
 use CDR;
-#use File::Basename;
-#use lib dirname . "/CDR.pm";
+
+
+# CSV base URL
+my $CSV_BASE = '/home/niti/src/cdr/csv_store/csv';
+
+# Directory to save csv files
+# (app is Mojolicious object. static is MojoX::Dispatcher::Static object)
+#my $CSV_DIR  = app->static->root . $CSV_BASE;
+app->secrets(['nitisha']);
+my $CSV_DIR  = $CSV_BASE;
+
+# Create directory if not exists
+unless (-d $CSV_DIR) {
+    mkpath $CSV_DIR or die "Cannot create dirctory: $CSV_DIR";
+}
+
+get '/one' => sub {
+    my $self = shift;
+	return $self->render(text => "Hello ");
+};
 
 get '/call' => sub($c) {
     my $self = shift;
-	#my $result = {name => 1};
 	
 	my $req  = {};
 	$req->{p_opr}     = $c->param('opr');
@@ -16,87 +39,93 @@ get '/call' => sub($c) {
 	$req->{p_to_time} = $c->param('to_time');
 	
 	my $cdr = CDR->new();
-	my $result = {};
+	my $result;
 	if ($req->{p_opr} eq "long-call"){
         $result = $cdr->long_call($req);
+	}elsif ($req->{p_opr} eq "avg-cost"){
+        $result = $cdr->avg_cost($req);
 	}
-
 	return $self->render(json => $result);
-	#return $c->render(text => "Hello $user.")
 };
 
 
 
 
 
-
-
-
-
-# get '/questions/(:question_id)' => sub {
-    # my $self = shift;
-    # my $result = {};
-    # # do stuff with $result based on $self->stash('question_id')
-    # return $self->render_json($result)
-# }
-
-# Echo the request body and send custom header with response
-post '/six' => sub ($c) {
-  $c->res->headers->header('X-Bender' => 'hi!');
-  $c->render(data => $c->req->body);
-};
-
-# payload base
-post '/five' => sub ($c) {
-  my $user = $c->param('user');
-  $c->render(text => $c->req->body);
-};
-
-# parameter base
-post '/four' => sub ($c) {
-  my $user = $c->param('user');
-  $c->render(text => "Hello $user.");
-};
-
-
-#user=sri
-get '/three' => sub ($c) {
-  my $user = $c->param('user');
-  $c->render(text => "Hello $user.");
-};
-
-get '/one' => sub {
+# Upload csv file
+post '/upload' => sub {
     my $self = shift;
-    #my $result = { "name" => "Nitisha"};
-	my $result = {"Nitisha"};
-    # do stuff with $result based on $self->stash('question_id')
-    #return $self->render_json($result);
-	return $self->render(text => "Nitisha");
-};
 
+    # Uploaded csv(Mojo::Upload object)
+    my $csv = $self->req->upload();
+	 
+    unless ($csv) {
+        return $self->render(
+            text  => "Upload fail. File is not specified."
+        );
+    }
+    
+    # Upload max size 3 
+    my $upload_max_size = 2 * 1024 * 1024 * 1024;
 
-get '/two' => sub {
-    my $self = shift;
-    my %result = ('Sales' =>    {
-                                'Brown' => 'Manager',
-                                'Smith' => 'Salesman',
-                                'Albert' => 'Salesman', 
-                            }, 
-            'Marketing' =>  {
-                                'Penfold' => 'Designer',
-                                'Evans' => 'Tea-person',
-                                'Jurgens' => 'Manager', 
-                            },
-            'Production' => {
-                                'Cotton' => 'Paste-up',
-                                'Ridgeway' => 'Manager',
-                                'Web' => 'Developer', 
-                            },
-            ); 
+    # Over max size
+    if ($csv->size > $upload_max_size) {
+        return $self->render(
+            #template => 'error',
+            text  => "Upload fail. CSV size is too large."
+        );
+    }
+    
+    # Check file type
+    my $csv_type = $csv->headers->content_type;
+    my %valid_types = ("text/csv" => "csv");
+    
+    # Content type is wrong
+    unless ($valid_types{$csv_type}) {
+        return $self->render(
+            text  => "Upload fail. Content type is wrong."
+        );
+    }
+    
+    # Extention
+    my $exts = {'text/csv' => 'csv'};
+    my $ext = $exts->{$csv_type};
+    
+    # csv file
+    my $csv_file = "$CSV_DIR/" . create_filename(). ".$ext";
+    
+    # If file is exists, Retry creating filename
+    while(-f $csv_file){
+        $csv_file = "$CSV_DIR/" . create_filename() . ".$ext";
+    }
+    
+    # Save to file
+    $csv->move_to($csv_file);
 	
-	# do stuff with $result based on $self->stash('question_id')
-    #return $self->render_json($result);
-	return $self->render(json => \%result);
-};
+	my $cdr = CDR->new();
+	$cdr->store_db($csv_file);
+
+	return $self->render(text => "File uploaded Successfully.");
+    
+} => 'upload';
+
+sub create_filename {
+  
+    # Date and time
+    my ($sec, $min, $hour, $mday, $month, $year) = localtime;
+    $month = $month + 1;
+    $year = $year + 1900;
+    
+    # Random number(0 ~ 99999)
+    my $rand_num = int(rand 100000);
+
+    # Create file name form datatime and random number
+    # (like image-20091014051023-78973)
+    my $name = sprintf("csv-%04s%02s%02s%02s%02s%02s-%05s",
+                       $year, $month, $mday, $hour, $min, $sec, $rand_num);
+    
+    return $name;
+	
+}
 
 app->start;

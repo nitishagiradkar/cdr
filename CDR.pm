@@ -6,11 +6,6 @@ use Data::Dumper;
 use Text::CSV_XS;
 use DB;
 
-# require Exporter;
-# @ISA = qw(Exporter);
-# @EXPORT = qw(long_call avg_cost avg_call);
-
-#how to save data into db sqlight
 
 sub new {
    my $class = shift;
@@ -22,12 +17,57 @@ sub new {
 
 sub long_call{
 	my ($self, $param) = @_;
-	#print STDERR Dumper $param;
-	return {name => "asr"};
+	
+	my $fr_date = $param->{'fr_date'};
+	my $to_date = $param->{'to_date'};
+	my $p_fr_time = $param->{'fr_time'};
+	my $p_to_time = $param->{'to_time'};
+	
+	my $dbh = get_dbh();
+    my $sth = $dbh->prepare(<<'SQL');
+    SELECT caller_id,recipient,call_date,end_time,duration,cost,reference,currency, MAX(duration) maxDur
+    FROM    CDR
+    --WHERE call_date BETWEEN ? AND ?
+SQL
+    #$sth->bind_param( 1, $fr_date );
+	#$sth->bind_param( 2, $to_date );
+    $sth->execute();
+	my $result = [];
+    while(my $row = $sth->fetchrow_arrayref){
+		my $hash = {};
+		$hash->{caller_id} = $row->[0];
+		$hash->{recipient} = $row->[1];
+		$hash->{call_date} = $row->[2];
+		$hash->{end_time} = $row->[3];
+		$hash->{duration} = $row->[4];
+		$hash->{cost}     = $row->[5];
+		$hash->{reference} = $row->[6];
+		$hash->{currency} = $row->[7];
+		push (@$result,$hash);
+	}
+	return $result;
 }
 
 sub avg_cost{
 	my ($self, $param) = @_;
+	my $fr_date = $param->{'fr_date'};
+	my $to_date = $param->{'to_date'};
+	my $p_fr_time = $param->{'fr_time'};
+	my $p_to_time = $param->{'to_time'};
+	
+	my $dbh = get_dbh();
+    my $sth = $dbh->prepare(<<'SQL');
+        SELECT  AVG(cost) avgCost
+            FROM    CDR
+    --WHERE call_date BETWEEN ? AND ?
+SQL
+    #$sth->bind_param( 1, $fr_date );
+	#$sth->bind_param( 2, $to_date );
+    $sth->execute();
+
+    my $result = $sth->fetchrow_hashref;
+
+	return $result;
 	
 }
 
@@ -52,6 +92,7 @@ SQL
 		my $csv = Text::CSV_XS->new or die;
 		open my $fh, "<", $file;
 		while(my $row = $csv->getline($fh)) {
+			next if ($row =~ /caller_id/i); # ignore header row from csv file
 			$sth->execute(@$row);
 		}
 		$csv->eof;
@@ -61,13 +102,6 @@ SQL
 		$dbh->commit;
 		
 	}
-	
-	
-	
-	
-	
-	
 }
-
 
 1;
