@@ -92,7 +92,9 @@ SQL
 		my $csv = Text::CSV_XS->new or die;
 		open my $fh, "<", $file;
 		while(my $row = $csv->getline($fh)) {
-			next if ($row =~ /caller_id/i); # ignore header row from csv file
+			
+			# ignore header row from csv file
+			#next if ($row->[0] =~ /caller_id/i);
 			$sth->execute(@$row);
 		}
 		$csv->eof;
